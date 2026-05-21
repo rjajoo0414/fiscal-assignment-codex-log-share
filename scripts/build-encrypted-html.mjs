@@ -9,7 +9,7 @@ const DEFAULT_ITERATIONS = 600000;
 function parseArgs(argv) {
   const args = {
     out: "docs/index.html",
-    title: "Shared Codex Log",
+    title: "財政 課題ログ",
     iterations: DEFAULT_ITERATIONS
   };
 
@@ -32,7 +32,7 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`Usage:
-  npm run build -- --session /path/to/rollout.jsonl [--title "Shared Codex Log"] [--out docs/index.html]
+  npm run build -- --session /path/to/rollout.jsonl [--title "財政 課題ログ"] [--out docs/index.html]
 
 Options:
   --session      Codex rollout JSONL file to export
@@ -466,7 +466,7 @@ async function main() {
 
   const password = await getPassword();
   const publicData = {
-    schema: "codex-log-share:v1",
+    schema: "fiscal-assignment-codex-log-share:v1",
     title: args.title,
     sourceName: basename(sessionPath),
     exportedAt: new Date().toISOString(),

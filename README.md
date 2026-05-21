@@ -1,4 +1,4 @@
-# Codex Log Share
+# Fiscal Assignment Codex Log Share
 
 Create a single password-protected HTML page for sharing selected Codex chat logs through GitHub Pages.
 
@@ -10,8 +10,8 @@ The generated page contains only encrypted data. The raw Codex JSONL file is not
 2. Build an encrypted page:
 
    ```bash
-   cd /Users/hiroaki/.pyenv/python_files/Study/codex-log-share
-   npm run build -- --session /Users/hiroaki/.codex/sessions/2026/05/21/rollout-example.jsonl --title "Shared Codex Log"
+   cd /Users/hiroaki/.pyenv/python_files/Study/fiscal-assignment-codex-log-share
+   npm run build -- --session /Users/hiroaki/.codex/sessions/2026/05/21/rollout-example.jsonl --title "財政 課題ログ"
    ```
 
 3. Enter a strong passphrase when prompted.
