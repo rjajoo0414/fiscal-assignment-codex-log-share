@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.log
+tmp/
+dist/
+
+# Do not commit raw Codex exports.
+*.jsonl
+*.json
+!package.json

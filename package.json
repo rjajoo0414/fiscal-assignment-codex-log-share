@@ -1,0 +1,13 @@
+{
+  "name": "codex-log-share",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-encrypted-html.mjs",
+    "serve": "python3 -m http.server 8000 --directory docs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
