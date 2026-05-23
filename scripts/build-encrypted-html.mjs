@@ -194,14 +194,22 @@ function htmlFor(encrypted, title) {
 <title>${escapeHtml(title)}</title>
 <style>
   :root {
-    color-scheme: light dark;
-    --bg: #f5f4ef;
+    color-scheme: light;
+    --bg: #ffffff;
     --surface: #ffffff;
-    --text: #20201d;
-    --muted: #68685f;
-    --border: #d9d6cc;
-    --accent: #1d6f5f;
-    --danger: #9d2f2f;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #d6dde6;
+    --accent: #0f766e;
+    --danger: #b42318;
+    --user-bg: #eff6ff;
+    --user-border: #bfdbfe;
+    --user-header: #dbeafe;
+    --user-accent: #1d4ed8;
+    --assistant-bg: #f8fafc;
+    --assistant-border: #d1d5db;
+    --assistant-header: #ecfdf5;
+    --assistant-accent: #047857;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -343,9 +351,20 @@ function htmlFor(encrypted, title) {
   .message {
     margin: 14px 0;
     border: 1px solid var(--border);
+    border-left-width: 4px;
     border-radius: 8px;
     background: var(--surface);
     overflow: hidden;
+  }
+  .message.user {
+    border-color: var(--user-border);
+    border-left-color: var(--user-accent);
+    background: var(--user-bg);
+  }
+  .message.assistant {
+    border-color: var(--assistant-border);
+    border-left-color: var(--assistant-accent);
+    background: var(--assistant-bg);
   }
   .message header {
     display: flex;
@@ -356,10 +375,24 @@ function htmlFor(encrypted, title) {
     color: var(--muted);
     font-size: 13px;
   }
+  .message.user header {
+    border-bottom-color: var(--user-border);
+    background: var(--user-header);
+  }
+  .message.assistant header {
+    border-bottom-color: var(--assistant-border);
+    background: var(--assistant-header);
+  }
   .role {
     color: var(--text);
     font-weight: 750;
     text-transform: capitalize;
+  }
+  .message.user .role {
+    color: var(--user-accent);
+  }
+  .message.assistant .role {
+    color: var(--assistant-accent);
   }
   .body {
     overflow-wrap: anywhere;
@@ -442,17 +475,6 @@ function htmlFor(encrypted, title) {
     }
     button {
       width: 100%;
-    }
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #171713;
-      --surface: #22221d;
-      --text: #f0f0eb;
-      --muted: #aaa79d;
-      --border: #3d3b33;
-      --accent: #27806f;
-      --danger: #ff8a8a;
     }
   }
 </style>
@@ -843,14 +865,16 @@ function render(data) {
     section.append(sessionMeta);
 
     for (const message of session.messages || []) {
-      const article = document.createElement("article");
-      article.className = "message";
       const parsedSubagent = parseSubagentNotification(message.text || "");
+      const displayRole = parsedSubagent ? "assistant" : message.role || "message";
+      const roleClass = displayRole === "user" || displayRole === "assistant" ? displayRole : "other";
+      const article = document.createElement("article");
+      article.className = "message " + roleClass;
 
       const header = document.createElement("header");
       const role = document.createElement("span");
       role.className = "role";
-      role.textContent = parsedSubagent ? "assistant" : message.role || "message";
+      role.textContent = displayRole;
       const time = document.createElement("span");
       time.textContent = formatDate(message.timestamp);
       header.append(role, time);
