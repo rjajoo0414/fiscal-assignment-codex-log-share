@@ -274,6 +274,19 @@ function htmlFor(encrypted, title) {
     color: var(--danger);
     font-size: 14px;
   }
+  .log-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: -8px 0 20px;
+  }
+  .secondary {
+    height: 34px;
+    border: 1px solid var(--border);
+    padding: 0 12px;
+    color: var(--text);
+    background: transparent;
+    font-size: 13px;
+  }
   .meta {
     margin-bottom: 24px;
     color: var(--muted);
@@ -377,6 +390,9 @@ function htmlFor(encrypted, title) {
   <section id="log" class="hidden">
     <h1 id="title"></h1>
     <div id="meta" class="meta"></div>
+    <div class="log-toolbar">
+      <button id="forget-cache" class="secondary" type="button">Forget saved unlock</button>
+    </div>
     <div id="note" class="note hidden"></div>
     <div id="links" class="links hidden"></div>
     <div id="add-log" class="add-log hidden"></div>
@@ -386,6 +402,7 @@ function htmlFor(encrypted, title) {
 <script>
 const PAGE_TITLE = ${pageTitle};
 const ENCRYPTED_LOG = ${payloadJson};
+const CACHE_PREFIX = "fiscal-assignment-codex-log-share:";
 
 document.getElementById("locked-title").textContent = PAGE_TITLE;
 
@@ -429,6 +446,54 @@ async function decryptLog(password) {
   return JSON.parse(new TextDecoder().decode(plaintext));
 }
 
+async function encryptedLogFingerprint() {
+  const fingerprintSource = [
+    ENCRYPTED_LOG.version,
+    ENCRYPTED_LOG.kdf,
+    ENCRYPTED_LOG.cipher,
+    ENCRYPTED_LOG.iterations,
+    ENCRYPTED_LOG.salt,
+    ENCRYPTED_LOG.iv,
+    ENCRYPTED_LOG.ciphertext
+  ].join("|");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(fingerprintSource));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function cacheKey() {
+  return CACHE_PREFIX + await encryptedLogFingerprint();
+}
+
+async function loadCachedLog() {
+  try {
+    const raw = localStorage.getItem(await cacheKey());
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    return cached && cached.data ? cached.data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedLog(data) {
+  try {
+    localStorage.setItem(await cacheKey(), JSON.stringify({
+      savedAt: new Date().toISOString(),
+      data
+    }));
+  } catch {
+  }
+}
+
+async function clearCachedLog() {
+  try {
+    localStorage.removeItem(await cacheKey());
+  } catch {
+  }
+}
+
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -454,6 +519,7 @@ function render(data) {
   ].filter(Boolean).join(" | ");
 
   const note = document.getElementById("note");
+  note.classList.add("hidden");
   if (data.note) {
     note.textContent = data.note;
     note.classList.remove("hidden");
@@ -461,6 +527,7 @@ function render(data) {
 
   const links = document.getElementById("links");
   links.replaceChildren();
+  links.classList.add("hidden");
   if (Array.isArray(data.links) && data.links.length > 0) {
     const heading = document.createElement("strong");
     heading.textContent = "Related links";
@@ -479,6 +546,7 @@ function render(data) {
   }
 
   const addLog = document.getElementById("add-log");
+  addLog.classList.add("hidden");
   if (data.addLogHelp) {
     addLog.textContent = data.addLogHelp;
     addLog.classList.remove("hidden");
@@ -540,12 +608,23 @@ document.getElementById("form").addEventListener("submit", async (event) => {
   status.textContent = "Decrypting...";
 
   try {
-    render(await decryptLog(password));
+    const data = await decryptLog(password);
+    await saveCachedLog(data);
+    render(data);
     status.textContent = "";
   } catch {
     status.textContent = "Could not decrypt. Check the passphrase.";
     button.disabled = false;
   }
+});
+
+document.getElementById("forget-cache").addEventListener("click", async () => {
+  await clearCachedLog();
+  location.reload();
+});
+
+loadCachedLog().then((cached) => {
+  if (cached) render(cached);
 });
 </script>
 </body>
