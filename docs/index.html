@@ -664,7 +664,7 @@ function render(data) {
       const header = document.createElement("header");
       const role = document.createElement("span");
       role.className = "role";
-      role.textContent = parsedSubagent ? "subagent" : message.role || "message";
+      role.textContent = parsedSubagent ? "assistant" : message.role || "message";
       const time = document.createElement("span");
       time.textContent = formatDate(message.timestamp);
       header.append(role, time);

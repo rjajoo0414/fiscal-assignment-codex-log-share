@@ -108,6 +108,10 @@ function isAgentsInstructionMessage(text) {
   return text.startsWith("# AGENTS.md instructions for ");
 }
 
+function isSubagentNotificationMessage(text) {
+  return text.trim().startsWith("<subagent_notification>");
+}
+
 function extractMessages(sessionPath) {
   const text = readFileSync(sessionPath, "utf8");
   const messages = [];
@@ -138,7 +142,7 @@ function extractMessages(sessionPath) {
     }
 
     messages.push({
-      role: payload.role,
+      role: isSubagentNotificationMessage(textContent) ? "assistant" : payload.role,
       timestamp: row.timestamp || null,
       text: textContent,
       sourceLine: index + 1
@@ -846,7 +850,7 @@ function render(data) {
       const header = document.createElement("header");
       const role = document.createElement("span");
       role.className = "role";
-      role.textContent = parsedSubagent ? "subagent" : message.role || "message";
+      role.textContent = parsedSubagent ? "assistant" : message.role || "message";
       const time = document.createElement("span");
       time.textContent = formatDate(message.timestamp);
       header.append(role, time);
