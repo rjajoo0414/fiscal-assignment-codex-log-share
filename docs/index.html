@@ -135,6 +135,24 @@
   code {
     overflow-wrap: anywhere;
   }
+  pre {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--surface) 88%, var(--text));
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre code {
+    overflow-wrap: normal;
+  }
+  blockquote {
+    margin: 12px 0;
+    padding: 2px 0 2px 14px;
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+  }
   .message {
     margin: 14px 0;
     border: 1px solid var(--border);
@@ -157,10 +175,72 @@
     text-transform: capitalize;
   }
   .body {
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
     padding: 14px;
     line-height: 1.65;
+  }
+  .body > :first-child {
+    margin-top: 0;
+  }
+  .body > :last-child {
+    margin-bottom: 0;
+  }
+  .body h1,
+  .body h2,
+  .body h3 {
+    margin: 18px 0 8px;
+    line-height: 1.35;
+    letter-spacing: 0;
+  }
+  .body h1 {
+    font-size: 22px;
+  }
+  .body h2 {
+    font-size: 18px;
+  }
+  .body h3 {
+    font-size: 16px;
+  }
+  .body p {
+    margin: 0 0 12px;
+    color: inherit;
+  }
+  .body ul,
+  .body ol {
+    margin: 0 0 12px;
+    padding-left: 1.4rem;
+  }
+  .body li {
+    margin: 4px 0;
+  }
+  .body a {
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+  .body code {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 4px;
+    background: color-mix(in srgb, var(--surface) 86%, var(--text));
+    font-size: 0.92em;
+  }
+  .body pre code {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+  }
+  .subagent-summary {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .subagent-summary strong {
+    color: var(--text);
   }
   .hidden {
     display: none;
@@ -319,6 +399,193 @@ function formatDate(value) {
   return date.toLocaleString();
 }
 
+function escapeHtmlText(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeUrl(value) {
+  try {
+    const url = new URL(value, location.href);
+    if (url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:") {
+      return url.href;
+    }
+  } catch {
+  }
+  return "#";
+}
+
+function renderInlineMarkdown(value) {
+  let html = escapeHtmlText(value);
+  const codeParts = [];
+  const linkParts = [];
+  html = html.replace(/`([^`]+)`/g, (_, code) => {
+    const token = "\u0000CODE" + codeParts.length + "\u0000";
+    codeParts.push("<code>" + code + "</code>");
+    return token;
+  });
+  html = html.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g, (_, label, url) => {
+    const token = "\u0000LINK" + linkParts.length + "\u0000";
+    linkParts.push('<a href="' + safeUrl(url) + '" rel="noreferrer" target="_blank">' + label + "</a>");
+    return token;
+  });
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  html = html.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$)/g, "$1<em>$2</em>");
+  html = html.replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, "$1<em>$2</em>");
+  html = html.replace(/(https?:\/\/[^\s<)]+)/g, (url) => {
+    return '<a href="' + safeUrl(url) + '" rel="noreferrer" target="_blank">' + url + "</a>";
+  });
+  for (const [index, link] of linkParts.entries()) {
+    html = html.replaceAll("\u0000LINK" + index + "\u0000", link);
+  }
+  for (const [index, code] of codeParts.entries()) {
+    html = html.replaceAll("\u0000CODE" + index + "\u0000", code);
+  }
+  return html;
+}
+
+function renderMarkdown(markdown) {
+  const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+  const html = [];
+  let paragraph = [];
+  let listType = "";
+  let inFence = false;
+  let fence = [];
+  let blockquote = [];
+
+  const closeParagraph = () => {
+    if (paragraph.length === 0) return;
+    html.push("<p>" + renderInlineMarkdown(paragraph.join(" ")) + "</p>");
+    paragraph = [];
+  };
+  const closeList = () => {
+    if (!listType) return;
+    html.push("</" + listType + ">");
+    listType = "";
+  };
+  const closeBlockquote = () => {
+    if (blockquote.length === 0) return;
+    html.push("<blockquote>" + renderMarkdown(blockquote.join("\n")) + "</blockquote>");
+    blockquote = [];
+  };
+
+  for (const line of lines) {
+    const fenceMatch = line.match(/^```/);
+    if (fenceMatch) {
+      if (inFence) {
+        html.push("<pre><code>" + escapeHtmlText(fence.join("\n")) + "</code></pre>");
+        fence = [];
+        inFence = false;
+      } else {
+        closeParagraph();
+        closeList();
+        closeBlockquote();
+        inFence = true;
+      }
+      continue;
+    }
+    if (inFence) {
+      fence.push(line);
+      continue;
+    }
+
+    if (!line.trim()) {
+      closeParagraph();
+      closeList();
+      closeBlockquote();
+      continue;
+    }
+
+    const quoteMatch = line.match(/^>\s?(.*)$/);
+    if (quoteMatch) {
+      closeParagraph();
+      closeList();
+      blockquote.push(quoteMatch[1]);
+      continue;
+    }
+
+    closeBlockquote();
+
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      closeParagraph();
+      closeList();
+      const level = headingMatch[1].length;
+      html.push("<h" + level + ">" + renderInlineMarkdown(headingMatch[2]) + "</h" + level + ">");
+      continue;
+    }
+
+    const unorderedMatch = line.match(/^\s*[-*+]\s+(.+)$/);
+    const orderedMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (unorderedMatch || orderedMatch) {
+      closeParagraph();
+      const nextType = unorderedMatch ? "ul" : "ol";
+      if (listType && listType !== nextType) closeList();
+      if (!listType) {
+        listType = nextType;
+        html.push("<" + listType + ">");
+      }
+      html.push("<li>" + renderInlineMarkdown((unorderedMatch || orderedMatch)[1]) + "</li>");
+      continue;
+    }
+
+    closeList();
+    paragraph.push(line.trim());
+  }
+
+  if (inFence) html.push("<pre><code>" + escapeHtmlText(fence.join("\n")) + "</code></pre>");
+  closeParagraph();
+  closeList();
+  closeBlockquote();
+  return html.join("");
+}
+
+function parseSubagentNotification(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed.startsWith("<subagent_notification>")) return null;
+  let jsonText = trimmed.slice("<subagent_notification>".length).trim();
+  jsonText = jsonText.replace(/<\/subagent_notification>\s*$/i, "").trim();
+  try {
+    const payload = JSON.parse(jsonText);
+    const status = payload && typeof payload.status === "object" ? payload.status : {};
+    const statusKey = Object.keys(status)[0] || "status";
+    const statusText = typeof status[statusKey] === "string"
+      ? status[statusKey]
+      : JSON.stringify(status[statusKey] || status, null, 2);
+    return {
+      agentPath: payload.agent_path || "",
+      statusKey,
+      statusText
+    };
+  } catch {
+    return null;
+  }
+}
+
+function renderMessageBody(container, text, parsedSubagent) {
+  const subagent = parsedSubagent || parseSubagentNotification(text);
+  if (subagent) {
+    const summary = document.createElement("div");
+    summary.className = "subagent-summary";
+    summary.innerHTML = [
+      "<strong>Subagent notification</strong>",
+      subagent.statusKey ? "Status: " + escapeHtmlText(subagent.statusKey) : "",
+      subagent.agentPath ? "Agent: " + escapeHtmlText(subagent.agentPath) : ""
+    ].filter(Boolean).join(" | ");
+    container.append(summary);
+    const content = document.createElement("div");
+    content.innerHTML = renderMarkdown(subagent.statusText);
+    container.append(content);
+    return;
+  }
+  container.innerHTML = renderMarkdown(text || "");
+}
+
 function render(data) {
   document.title = data.title || PAGE_TITLE;
   document.getElementById("title").textContent = data.title || PAGE_TITLE;
@@ -392,18 +659,19 @@ function render(data) {
     for (const message of session.messages || []) {
       const article = document.createElement("article");
       article.className = "message";
+      const parsedSubagent = parseSubagentNotification(message.text || "");
 
       const header = document.createElement("header");
       const role = document.createElement("span");
       role.className = "role";
-      role.textContent = message.role || "message";
+      role.textContent = parsedSubagent ? "subagent" : message.role || "message";
       const time = document.createElement("span");
       time.textContent = formatDate(message.timestamp);
       header.append(role, time);
 
       const body = document.createElement("div");
       body.className = "body";
-      body.textContent = message.text || "";
+      renderMessageBody(body, message.text || "", parsedSubagent);
 
       article.append(header, body);
       section.append(article);

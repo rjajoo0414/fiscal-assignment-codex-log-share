@@ -36,6 +36,8 @@ After a successful browser unlock, the decrypted log is cached in that browser's
 
 Only `user` and `assistant` message items are exported from the Codex JSONL. The injected `# AGENTS.md instructions for ...` message, developer messages, tool calls, tool output, reasoning records, and app event records are excluded.
 
+Unlocked messages are rendered as Markdown. Codex subagent notification payloads are unwrapped and rendered from their completed/failed status text instead of showing raw JSON.
+
 To add this report-compilation session later, find the newest matching JSONL under `~/.codex/sessions/2026/05/24/`, rerun the same `npm run build` command with the same password and an additional `--session`, then commit and push the regenerated `docs/index.html`.
 
 Still review the generated page before sharing. User and assistant messages may contain private paths, names, documents, or other sensitive content.
