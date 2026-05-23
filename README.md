@@ -6,15 +6,19 @@ The generated page contains only encrypted data. The raw Codex JSONL file is not
 
 ## Workflow
 
-1. Pick a Codex session JSONL file under `~/.codex/sessions/YYYY/MM/DD/`.
+1. Pick Codex session JSONL files under `~/.codex/sessions/YYYY/MM/DD/`.
 2. Build an encrypted page:
 
    ```bash
    cd /Users/hiroaki/.pyenv/python_files/Study/fiscal-assignment-codex-log-share
-   npm run build -- --session /Users/hiroaki/.codex/sessions/2026/05/21/rollout-example.jsonl --title "財政 課題ログ"
+   CODEX_LOG_PASSWORD='same passphrase as before' npm run build -- \
+     --session /Users/hiroaki/.codex/sessions/2026/05/21/rollout-example.jsonl \
+     --session /Users/hiroaki/.codex/sessions/2026/05/24/rollout-later-session.jsonl \
+     --link 'ChatGPT共有ログ=https://chatgpt.com/share/...' \
+     --title "財政I こども医療費助成 調査ログ"
    ```
 
-3. Enter a strong passphrase when prompted.
+3. Enter a strong passphrase when prompted, or set `CODEX_LOG_PASSWORD` non-interactively.
 4. Commit and publish `docs/index.html` with GitHub Pages.
 5. Put the GitHub Pages URL into a QR code.
 
@@ -29,6 +33,8 @@ CODEX_LOG_PASSWORD='long random passphrase here' npm run build -- --session /pat
 ## What gets included
 
 Only `user` and `assistant` message items are exported from the Codex JSONL. Developer messages, tool calls, tool output, reasoning records, and app event records are excluded.
+
+To add this report-compilation session later, find the newest matching JSONL under `~/.codex/sessions/2026/05/24/`, rerun the same `npm run build` command with the same password and an additional `--session`, then commit and push the regenerated `docs/index.html`.
 
 Still review the generated page before sharing. User and assistant messages may contain private paths, names, documents, or other sensitive content.
 

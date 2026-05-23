@@ -8,14 +8,19 @@ const DEFAULT_ITERATIONS = 600000;
 
 function parseArgs(argv) {
   const args = {
+    sessions: [],
+    links: [],
     out: "docs/index.html",
     title: "財政 課題ログ",
-    iterations: DEFAULT_ITERATIONS
+    iterations: DEFAULT_ITERATIONS,
+    note: ""
   };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--session") args.session = argv[++i];
+    if (arg === "--session") args.sessions.push(argv[++i]);
+    else if (arg === "--link") args.links.push(argv[++i]);
+    else if (arg === "--note") args.note = argv[++i];
     else if (arg === "--out") args.out = argv[++i];
     else if (arg === "--title") args.title = argv[++i];
     else if (arg === "--iterations") args.iterations = Number(argv[++i]);
@@ -35,7 +40,9 @@ function printHelp() {
   npm run build -- --session /path/to/rollout.jsonl [--title "財政 課題ログ"] [--out docs/index.html]
 
 Options:
-  --session      Codex rollout JSONL file to export
+  --session      Codex rollout JSONL file to export. Repeat to include multiple logs.
+  --link         External link shown after unlock, in label=url format. Repeatable.
+  --note         Short note shown after unlock
   --title        Title shown after decryption
   --out          Output HTML file, default docs/index.html
   --iterations   PBKDF2-SHA256 iterations, default ${DEFAULT_ITERATIONS}
@@ -130,6 +137,15 @@ function extractMessages(sessionPath) {
   }
 
   return { messages, skippedInvalid };
+}
+
+function parseLink(value) {
+  const index = value.indexOf("=");
+  if (index <= 0) throw new Error(`--link must be in label=url format: ${value}`);
+  return {
+    label: value.slice(0, index),
+    url: value.slice(index + 1)
+  };
 }
 
 function encryptJson(data, password, iterations) {
@@ -254,6 +270,32 @@ function htmlFor(encrypted, title) {
     color: var(--muted);
     font-size: 14px;
   }
+  .note,
+  .links,
+  .add-log {
+    margin: 14px 0 22px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    line-height: 1.65;
+  }
+  .links a {
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+  .session {
+    margin-top: 28px;
+  }
+  .session h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    line-height: 1.35;
+    letter-spacing: 0;
+  }
+  code {
+    overflow-wrap: anywhere;
+  }
   .message {
     margin: 14px 0;
     border: 1px solid var(--border);
@@ -326,6 +368,9 @@ function htmlFor(encrypted, title) {
   <section id="log" class="hidden">
     <h1 id="title"></h1>
     <div id="meta" class="meta"></div>
+    <div id="note" class="note hidden"></div>
+    <div id="links" class="links hidden"></div>
+    <div id="add-log" class="add-log hidden"></div>
     <div id="messages"></div>
   </section>
 </main>
@@ -385,33 +430,91 @@ function formatDate(value) {
 function render(data) {
   document.title = data.title || PAGE_TITLE;
   document.getElementById("title").textContent = data.title || PAGE_TITLE;
+  const sessions = Array.isArray(data.sessions)
+    ? data.sessions
+    : [{
+        title: data.sourceName || data.title || "Codex log",
+        sourceName: data.sourceName || "",
+        messages: Array.isArray(data.messages) ? data.messages : []
+      }];
+  const messageCount = sessions.reduce((sum, session) => sum + (session.messages || []).length, 0);
   document.getElementById("meta").textContent = [
-    data.sourceName ? "Source: " + data.sourceName : "",
     data.exportedAt ? "Exported: " + formatDate(data.exportedAt) : "",
-    Array.isArray(data.messages) ? data.messages.length + " messages" : ""
+    sessions.length + " log(s)",
+    messageCount + " messages"
   ].filter(Boolean).join(" | ");
+
+  const note = document.getElementById("note");
+  if (data.note) {
+    note.textContent = data.note;
+    note.classList.remove("hidden");
+  }
+
+  const links = document.getElementById("links");
+  links.replaceChildren();
+  if (Array.isArray(data.links) && data.links.length > 0) {
+    const heading = document.createElement("strong");
+    heading.textContent = "Related links";
+    links.append(heading);
+    for (const link of data.links) {
+      const paragraph = document.createElement("p");
+      const anchor = document.createElement("a");
+      anchor.href = link.url || "#";
+      anchor.rel = "noreferrer";
+      anchor.target = "_blank";
+      anchor.textContent = link.label ? link.label + ": " + link.url : link.url;
+      paragraph.append(anchor);
+      links.append(paragraph);
+    }
+    links.classList.remove("hidden");
+  }
+
+  const addLog = document.getElementById("add-log");
+  if (data.addLogHelp) {
+    addLog.textContent = data.addLogHelp;
+    addLog.classList.remove("hidden");
+  }
 
   const container = document.getElementById("messages");
   container.replaceChildren();
 
-  for (const message of data.messages || []) {
-    const article = document.createElement("article");
-    article.className = "message";
+  for (const session of sessions) {
+    const section = document.createElement("section");
+    section.className = "session";
 
-    const header = document.createElement("header");
-    const role = document.createElement("span");
-    role.className = "role";
-    role.textContent = message.role || "message";
-    const time = document.createElement("span");
-    time.textContent = formatDate(message.timestamp);
-    header.append(role, time);
+    const heading = document.createElement("h2");
+    heading.textContent = session.title || session.sourceName || "Codex log";
+    section.append(heading);
 
-    const body = document.createElement("div");
-    body.className = "body";
-    body.textContent = message.text || "";
+    const sessionMeta = document.createElement("div");
+    sessionMeta.className = "meta";
+    sessionMeta.textContent = [
+      session.sourceName ? "Source: " + session.sourceName : "",
+      Array.isArray(session.messages) ? session.messages.length + " messages" : ""
+    ].filter(Boolean).join(" | ");
+    section.append(sessionMeta);
 
-    article.append(header, body);
-    container.append(article);
+    for (const message of session.messages || []) {
+      const article = document.createElement("article");
+      article.className = "message";
+
+      const header = document.createElement("header");
+      const role = document.createElement("span");
+      role.className = "role";
+      role.textContent = message.role || "message";
+      const time = document.createElement("span");
+      time.textContent = formatDate(message.timestamp);
+      header.append(role, time);
+
+      const body = document.createElement("div");
+      body.className = "body";
+      body.textContent = message.text || "";
+
+      article.append(header, body);
+      section.append(article);
+    }
+
+    container.append(section);
   }
 
   document.getElementById("unlock").classList.add("hidden");
@@ -455,22 +558,32 @@ async function main() {
     printHelp();
     return;
   }
-  if (!args.session) throw new Error("--session is required");
+  if (args.sessions.length === 0) throw new Error("--session is required");
 
-  const sessionPath = resolve(args.session);
   const outPath = resolve(args.out);
-  const { messages, skippedInvalid } = extractMessages(sessionPath);
-  if (messages.length === 0) {
-    throw new Error("No user or assistant messages were found in the session");
-  }
+  const sessions = args.sessions.map((sessionArg) => {
+    const sessionPath = resolve(sessionArg);
+    const { messages, skippedInvalid } = extractMessages(sessionPath);
+    if (messages.length === 0) {
+      throw new Error(`No user or assistant messages were found in ${sessionPath}`);
+    }
+    return {
+      title: basename(sessionPath).replace(/\.jsonl$/, ""),
+      sourceName: basename(sessionPath),
+      skippedInvalid,
+      messages
+    };
+  });
 
   const password = await getPassword();
   const publicData = {
-    schema: "fiscal-assignment-codex-log-share:v1",
+    schema: "fiscal-assignment-codex-log-share:v2",
     title: args.title,
-    sourceName: basename(sessionPath),
     exportedAt: new Date().toISOString(),
-    messages
+    note: args.note,
+    links: args.links.map(parseLink),
+    addLogHelp: "To add another Codex session later: identify the new JSONL under ~/.codex/sessions/YYYY/MM/DD/, then rerun npm run build with the same CODEX_LOG_PASSWORD and add another --session /path/to/rollout.jsonl. The generated docs/index.html can then be committed and pushed again.",
+    sessions
   };
 
   const encrypted = encryptJson(publicData, password, args.iterations);
@@ -478,7 +591,8 @@ async function main() {
   writeFileSync(outPath, htmlFor(encrypted, args.title), "utf8");
 
   console.log(`Wrote ${outPath}`);
-  console.log(`Included ${messages.length} user/assistant messages`);
+  console.log(`Included ${sessions.length} log(s) and ${sessions.reduce((sum, session) => sum + session.messages.length, 0)} user/assistant messages`);
+  const skippedInvalid = sessions.reduce((sum, session) => sum + session.skippedInvalid, 0);
   if (skippedInvalid > 0) console.log(`Skipped ${skippedInvalid} invalid JSONL lines`);
   console.log("Review the decrypted page before sharing the URL.");
 }
