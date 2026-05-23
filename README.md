@@ -32,7 +32,7 @@ CODEX_LOG_PASSWORD='long random passphrase here' npm run build -- --session /pat
 
 ## What gets included
 
-Only `user` and `assistant` message items are exported from the Codex JSONL. Developer messages, tool calls, tool output, reasoning records, and app event records are excluded.
+Only `user` and `assistant` message items are exported from the Codex JSONL. The injected `# AGENTS.md instructions for ...` message, developer messages, tool calls, tool output, reasoning records, and app event records are excluded.
 
 To add this report-compilation session later, find the newest matching JSONL under `~/.codex/sessions/2026/05/24/`, rerun the same `npm run build` command with the same password and an additional `--session`, then commit and push the regenerated `docs/index.html`.
 

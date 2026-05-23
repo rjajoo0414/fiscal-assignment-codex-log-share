@@ -104,10 +104,15 @@ function contentText(content) {
     .join("\n");
 }
 
+function isAgentsInstructionMessage(text) {
+  return text.startsWith("# AGENTS.md instructions for ");
+}
+
 function extractMessages(sessionPath) {
   const text = readFileSync(sessionPath, "utf8");
   const messages = [];
   let skippedInvalid = 0;
+  let skippedAgentsInstructions = 0;
 
   for (const [index, line] of text.split(/\r?\n/).entries()) {
     if (!line.trim()) continue;
@@ -127,6 +132,10 @@ function extractMessages(sessionPath) {
 
     const textContent = contentText(payload.content).trim();
     if (!textContent) continue;
+    if (isAgentsInstructionMessage(textContent)) {
+      skippedAgentsInstructions += 1;
+      continue;
+    }
 
     messages.push({
       role: payload.role,
@@ -136,7 +145,7 @@ function extractMessages(sessionPath) {
     });
   }
 
-  return { messages, skippedInvalid };
+  return { messages, skippedInvalid, skippedAgentsInstructions };
 }
 
 function parseLink(value) {
@@ -563,7 +572,7 @@ async function main() {
   const outPath = resolve(args.out);
   const sessions = args.sessions.map((sessionArg) => {
     const sessionPath = resolve(sessionArg);
-    const { messages, skippedInvalid } = extractMessages(sessionPath);
+    const { messages, skippedInvalid, skippedAgentsInstructions } = extractMessages(sessionPath);
     if (messages.length === 0) {
       throw new Error(`No user or assistant messages were found in ${sessionPath}`);
     }
@@ -571,6 +580,7 @@ async function main() {
       title: basename(sessionPath).replace(/\.jsonl$/, ""),
       sourceName: basename(sessionPath),
       skippedInvalid,
+      skippedAgentsInstructions,
       messages
     };
   });
@@ -594,6 +604,8 @@ async function main() {
   console.log(`Included ${sessions.length} log(s) and ${sessions.reduce((sum, session) => sum + session.messages.length, 0)} user/assistant messages`);
   const skippedInvalid = sessions.reduce((sum, session) => sum + session.skippedInvalid, 0);
   if (skippedInvalid > 0) console.log(`Skipped ${skippedInvalid} invalid JSONL lines`);
+  const skippedAgentsInstructions = sessions.reduce((sum, session) => sum + session.skippedAgentsInstructions, 0);
+  if (skippedAgentsInstructions > 0) console.log(`Skipped ${skippedAgentsInstructions} AGENTS.md instruction message(s)`);
   console.log("Review the decrypted page before sharing the URL.");
 }
 
