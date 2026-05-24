@@ -9,6 +9,7 @@ const DEFAULT_ITERATIONS = 600000;
 function parseArgs(argv) {
   const args = {
     sessions: [],
+    sessionTitles: [],
     links: [],
     out: "docs/index.html",
     title: "財政 課題ログ",
@@ -19,6 +20,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--session") args.sessions.push(argv[++i]);
+    else if (arg === "--session-title") args.sessionTitles.push(argv[++i]);
     else if (arg === "--link") args.links.push(argv[++i]);
     else if (arg === "--note") args.note = argv[++i];
     else if (arg === "--out") args.out = argv[++i];
@@ -31,6 +33,9 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.iterations) || args.iterations < 100000) {
     throw new Error("--iterations must be an integer >= 100000");
   }
+  if (args.sessionTitles.length > args.sessions.length) {
+    throw new Error("--session-title cannot be used more times than --session");
+  }
 
   return args;
 }
@@ -41,6 +46,7 @@ function printHelp() {
 
 Options:
   --session      Codex rollout JSONL file to export. Repeat to include multiple logs.
+  --session-title Display title for the preceding session position. Repeatable.
   --link         External link shown after unlock, in label=url format. Repeatable.
   --note         Short note shown after unlock
   --title        Title shown after decryption
@@ -945,14 +951,14 @@ async function main() {
   if (args.sessions.length === 0) throw new Error("--session is required");
 
   const outPath = resolve(args.out);
-  const sessions = args.sessions.map((sessionArg) => {
+  const sessions = args.sessions.map((sessionArg, index) => {
     const sessionPath = resolve(sessionArg);
     const { messages, skippedInvalid, skippedAgentsInstructions } = extractMessages(sessionPath);
     if (messages.length === 0) {
       throw new Error(`No user or assistant messages were found in ${sessionPath}`);
     }
     return {
-      title: basename(sessionPath).replace(/\.jsonl$/, ""),
+      title: args.sessionTitles[index] || basename(sessionPath).replace(/\.jsonl$/, ""),
       sourceName: basename(sessionPath),
       skippedInvalid,
       skippedAgentsInstructions,

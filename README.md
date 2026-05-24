@@ -6,14 +6,16 @@ The generated page contains only encrypted data. The raw Codex JSONL file is not
 
 ## Workflow
 
-1. Pick Codex session JSONL files under `~/.codex/sessions/YYYY/MM/DD/`.
+1. Pick Codex session JSONL files under `~/.codex/sessions/YYYY/MM/DD/`. Use `--session-title` after each `--session` when the displayed log title should be friendlier than the JSONL filename.
 2. Build an encrypted page:
 
    ```bash
    cd /Users/hiroaki/.pyenv/python_files/Study/fiscal-assignment-codex-log-share
    CODEX_LOG_PASSWORD='same passphrase as before' npm run build -- \
      --session /Users/hiroaki/.codex/sessions/2026/05/21/rollout-example.jsonl \
+     --session-title "調査・構成検討" \
      --session /Users/hiroaki/.codex/sessions/2026/05/24/rollout-later-session.jsonl \
+     --session-title "課題レポートをPDF化" \
      --link 'ChatGPT共有ログ=https://chatgpt.com/share/...' \
      --title "財政I こども医療費助成 調査ログ"
    ```
