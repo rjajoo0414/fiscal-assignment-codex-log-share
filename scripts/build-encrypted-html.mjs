@@ -311,8 +311,7 @@ function htmlFor(encrypted, title) {
     font-size: 14px;
   }
   .note,
-  .links,
-  .add-log {
+  .links {
     margin: 14px 0 22px;
     padding: 14px;
     border: 1px solid var(--border);
@@ -507,7 +506,6 @@ function htmlFor(encrypted, title) {
     </div>
     <div id="note" class="note hidden"></div>
     <div id="links" class="links hidden"></div>
-    <div id="add-log" class="add-log hidden"></div>
     <div id="messages"></div>
   </section>
 </main>
@@ -844,13 +842,6 @@ function render(data) {
     links.classList.remove("hidden");
   }
 
-  const addLog = document.getElementById("add-log");
-  addLog.classList.add("hidden");
-  if (data.addLogHelp) {
-    addLog.textContent = data.addLogHelp;
-    addLog.classList.remove("hidden");
-  }
-
   const container = document.getElementById("messages");
   container.replaceChildren();
 
@@ -973,7 +964,6 @@ async function main() {
     exportedAt: new Date().toISOString(),
     note: args.note,
     links: args.links.map(parseLink),
-    addLogHelp: "To add another Codex session later: identify the new JSONL under ~/.codex/sessions/YYYY/MM/DD/, then rerun npm run build with the same CODEX_LOG_PASSWORD and add another --session /path/to/rollout.jsonl. The generated docs/index.html can then be committed and pushed again.",
     sessions
   };
 
