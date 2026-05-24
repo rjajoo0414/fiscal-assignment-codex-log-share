@@ -236,7 +236,6 @@ function htmlFor(encrypted, title) {
     margin: 12vh auto 0;
     padding: 28px;
     border: 1px solid var(--border);
-    border-radius: 8px;
     background: var(--surface);
   }
   h1 {
@@ -265,7 +264,6 @@ function htmlFor(encrypted, title) {
     flex: 1;
     height: 42px;
     border: 1px solid var(--border);
-    border-radius: 6px;
     padding: 0 12px;
     font: inherit;
     background: transparent;
@@ -274,7 +272,6 @@ function htmlFor(encrypted, title) {
   button {
     height: 42px;
     border: 0;
-    border-radius: 6px;
     padding: 0 16px;
     font: inherit;
     font-weight: 700;
@@ -315,7 +312,6 @@ function htmlFor(encrypted, title) {
     margin: 14px 0 22px;
     padding: 14px;
     border: 1px solid var(--border);
-    border-radius: 8px;
     background: var(--surface);
     line-height: 1.65;
   }
@@ -339,7 +335,6 @@ function htmlFor(encrypted, title) {
     margin: 12px 0;
     padding: 12px;
     border: 1px solid var(--border);
-    border-radius: 6px;
     background: color-mix(in srgb, var(--surface) 88%, var(--text));
     overflow-x: auto;
     white-space: pre;
@@ -357,7 +352,6 @@ function htmlFor(encrypted, title) {
     margin: 14px 0;
     border: 1px solid var(--border);
     border-left-width: 4px;
-    border-radius: 8px;
     background: var(--surface);
     overflow: hidden;
   }
@@ -444,7 +438,6 @@ function htmlFor(encrypted, title) {
   }
   .body code {
     border: 1px solid var(--border);
-    border-radius: 4px;
     padding: 0 4px;
     background: color-mix(in srgb, var(--surface) 86%, var(--text));
     font-size: 0.92em;
@@ -459,7 +452,6 @@ function htmlFor(encrypted, title) {
     margin-bottom: 12px;
     padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 6px;
     background: color-mix(in srgb, var(--surface) 92%, var(--accent));
     color: var(--muted);
     font-size: 13px;
